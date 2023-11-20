@@ -1,47 +1,151 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser-arcade-physics.min.js"></script>
+    <script src="phaser.min.js"></script>
+    <script src="ndwfc-master/ndwfc.js"></script>
+    <script src="ndwfc-master/ndwfc-tools.js"></script>
 </head>
 <body>
 
     <script>
+    var myMap;
     class Example extends Phaser.Scene
     {
         preload ()
         {
-            this.load.setBaseURL('https://labs.phaser.io');
+            this.load.image('city-tiles', 'tilemap_packed.png');
+        }
 
-            this.load.image('sky', 'assets/skies/space3.png');
-            this.load.image('logo', 'assets/sprites/phaser3-logo.png');
-            this.load.image('red', 'assets/particles/red.png');
+        tileRules(){
+            const arr1 = [
+                ["x", 1, 0],
+                ["x", 0, 0],
+                ["x", 0, 1],
+                ["y", 0, 0],
+                ["y", 0, 1],
+                ["y", 1, 0],
+                ["x", 0, 2],
+                ["x", 1, 2],
+                ["y", 0, 2],
+                ["y", 1, 2],
+                ["y", 0, 3],
+                ["y", 1, 3],
+                ["y", 0, 4],
+                ["y", 1, 4],
+                ["x", 4, 0],
+                ["x", 4, 1],
+                ["y", 7, 0],
+                ["y", 7, 1],
+                ["x", 10, 0],
+                ["x", 10, 1],
+                ["y", 10, 0],
+                ["y", 10, 1],
+                ["y", 9, 0],
+                ["y", 9, 1],
+                ["y", 8, 0],
+                ["y", 8, 1],
+                ["x", 0, 8],
+                ["x", 1, 8],
+                ["x", 0, 7],
+                ["x", 1, 7],
+                
+            ];
+
+            const rules = arr1.concat([["x",11,9],["y",11,7],["x",9,9],["y",9,15],["y",9,16],["x",9,12],["y",9,17],["y",12,5],["x",7,15],["y",7,7],["x",15,16],["y",15,18],["x",16,16],["y",16,19],["x",16,17],["x",17,5],["y",17,20],["y",5,5],["x",7,18],["x",18,19],["y",18,18],["x",19,19],["y",19,19],["y",19,31],["y",19,22],["y",19,32],["x",19,20],["x",20,5],["y",20,20],["x",19,31],["x",31,22],["y",31,20],["x",22,22],["y",22,2],["y",22,3],["x",22,32],["y",22,4],["x",32,19],["y",32,18],["x",20,2],["x",2,3],["y",2,5],["x",3,3],["y",3,24],["y",3,6],["x",3,4],["x",4,18],["y",4,7],["x",5,24],["x",24,6],["y",24,6],["x",6,6],["y",6,6],["x",6,7],["x",5,6],["y",5,8],["y",6,9],["y",7,10],["y",18,25],["y",19,26],["y",20,27],["x",20,8],["y",20,33],["x",8,9],["y",8,16],["y",9,28],["x",9,10],["x",10,25],["y",10,16],["x",25,26],["y",25,34],["x",26,26],["y",26,19],["x",26,27],["x",27,5],["y",27,20],["x",19,33],["x",33,16],["y",33,19],["x",16,28],["x",28,16],["y",28,29],["x",16,34],["x",34,19],["y",34,19],["x",19,29],["x",29,19],["y",29,29],["y",18,21],["y",29,30],["y",20,23],["x",7,21],["y",7,13],["x",21,22],["y",21,3],["x",22,30],["x",30,22],["y",30,3],["x",22,23],["x",23,5],["y",23,3],["y",5,14],["x",13,3],["x",3,14]]);
+
+            return rules;
+        }
+
+        tileWeights(arr){
+            
+            let largestIndex = -1;
+            let temp = [];
+            arr.forEach(function(item){
+                temp.push(item[1]);
+                temp.push(item[2]);
+                if(item[1] > largestIndex) largestIndex = item[1];
+                if(item[2] > largestIndex) largestIndex = item[2];
+            });
+            let tempSet = new Set(temp);
+            //console.log(tempSet);
+            let ret = [];
+            for(let i = 0; i < largestIndex; i++){
+                if(tempSet.has(i)) ret.push(1);
+                else ret.push(0);
+            }
+            return ret;  
+        }
+
+        generateMap(){
+            let nd = 2;
+            let rules = this.tileRules();
+            let weights = this.tileWeights(rules);
+            // console.log(weights);
+
+            let wfc = new WFC({ nd, rules, weights, wave: { "0,0": 6} });
+            //let wfc = new WFC({ nd, rules, weights});
+            let size = 5;
+            wfc.expand([-size,-size],[size,size]);  
+            let i = 0;
+            
+            while (true){
+                
+                let done = wfc.step();
+                if (done){ 
+                    break;
+                }
+                
+                //wfc.singleStep([i,i]);
+                i++;
+                /*
+                if(i == 5){
+                    size += 2
+		            wfc.expand([-size,-size],[size,size]); 
+                }
+                */
+                console.log(wfc.readout());
+                if(i > 25) break;
+            }
+            
+            let level = [];
+            let row = [];
+            for (let j = 0; j < size * 2 + 1; j++){
+                for(let k = 0; k < size * 2 + 1; k++){
+                    row.push(0);
+                }
+                level.push(row);
+                row = [];
+            }
+            console.log(level);
+            let readout = wfc.readout();
+            //console.log(readout);
+            for (const [key, value] of Object.entries(readout)) {
+                const coords = key.split(","); 
+                let x = parseInt(coords[0]) + size;
+                let y = parseInt(coords[1]) + size;
+                level[x][y] = value;
+            }
+            return level;
         }
 
         create ()
         {
-            this.add.image(400, 300, 'sky');
-
-            const particles = this.add.particles(0, 0, 'red', {
-                speed: 100,
-                scale: { start: 1, end: 0 },
-                blendMode: 'ADD'
-            });
-
-            const logo = this.physics.add.image(400, 100, 'logo');
-
-            logo.setVelocity(100, 200);
-            logo.setBounce(1, 1);
-            logo.setCollideWorldBounds(true);
-
-            particles.startFollow(logo);
+            const level = this.generateMap();
+            // When loading from an array, make sure to specify the tileWidth and tileHeight
+            myMap = this.make.tilemap({ data: level, tileWidth: 8, tileHeight: 8 });
+            const tiles = myMap.addTilesetImage('city-tiles');
+            const layer = myMap.createLayer(0, tiles, 0, 0);     
+            //layer.setScale(4);
         }
     }
 
     const config = {
         type: Phaser.AUTO,
-        width: 800,
-        height: 600,
+        width: 100,
+        height: 75,
         scene: Example,
+        zoom: 8,
+        //zoom: 4,
         physics: {
             default: 'arcade',
             arcade: {
@@ -50,8 +154,8 @@
         }
     };
 
-    const game = new Phaser.Game(config);
+    const game = new Phaser.Game(config);       
     </script>
-
+    <a href="tileInspector.html">tiles</a>
 </body>
 </html>

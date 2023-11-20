@@ -750,6 +750,7 @@ function wfcDemo3D(tilesetName){
       console.log(e)
       if (e.data.op == "init"){
         wfc = new WFC(e.data.wfcInput);
+        console.log(e.data.wfcInput);
         size = e.data.initialSize;
         increment = e.data.increment;
         multiply = e.data.multiply
@@ -770,7 +771,7 @@ function wfcDemo3D(tilesetName){
     }
   }
   
-  console.log(tool.getTileFormulae())
+  //console.log(tool.getTileFormulae())
   
   worker =new Worker(URL.createObjectURL(new Blob(["var WFC="+WFC.toString()+';('+workerCode.toString()+')()'])));// new Worker('worker.js');
 

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="phaser.min.js"></script>
+    <script src="ndwfc-master/ndwfc.js"></script>
+    <script src="ndwfc-master/ndwfc-tools.js"></script>
+</head>
+<body>
+
+    <script>
+    var myMap;
+    class Example extends Phaser.Scene
+    {
+        cursors;
+        preload ()
+        {
+            this.load.image('city-tiles', 'tilemap_packed.png');
+        }
+
+        create ()
+        {
+            this.cursors = this.input.keyboard.createCursorKeys();
+            this.tileSelected = -1;
+            const level = [];
+            var row = [];
+            for(var i = 0; i < 360; i++){
+                row.push(i);
+                if(i % (24) == (23)){
+                    for(var j = 0; j < 24; j++){
+                        row.push(0);
+                    }
+                    level.push(row);
+                    row = [];
+                }
+            }
+            myMap = this.make.tilemap({ data: level, tileWidth: 8, tileHeight: 8 });
+            const tileset = myMap.addTilesetImage('city-tiles');
+            const layer = myMap.createLayer(0, tileset, 0, 0);
+            this.marker = this.add.graphics();
+            this.marker.lineStyle(1, 0xffffff, 1);
+            this.marker.strokeRect(0, 0, myMap.tileWidth, myMap.tileHeight);
+        }
+
+        update (time, delta)
+        {
+            const worldPoint = this.input.activePointer.positionToCamera(this.cameras.main);
+
+            // Rounds down to nearest tile
+            const pointerTileX = myMap.worldToTileX(worldPoint.x);
+            const pointerTileY = myMap.worldToTileY(worldPoint.y);
+
+            // Snap to tile coordinates, but in world space
+            this.marker.x = myMap.tileToWorldX(pointerTileX);
+            this.marker.y = myMap.tileToWorldY(pointerTileY);
+
+            if (this.input.manager.activePointer.isDown)
+            {
+                const tile = myMap.getTileAt(pointerTileX, pointerTileY);
+
+                if (tile)
+                {
+                    if(pointerTileX > 24){
+                        myMap.putTileAt(this.tileSelected, pointerTileX, pointerTileY);
+                    }
+                    else {
+                        this.tileSelected = tile.index;
+                        console.log("tileSelected: " + tile.index);
+                    }
+                }
+            }
+            if (this.input.keyboard.checkDown(this.cursors.left, 250))
+            {
+                this.makeRules();
+            }
+        }
+
+        multiDimensionalUnique(arr) {
+            var uniques = [];
+            var itemsFound = {};
+            for(var i = 0, l = arr.length; i < l; i++) {
+            var stringified = JSON.stringify(arr[i]);
+            if(itemsFound[stringified]) { continue; }
+            uniques.push(arr[i]);
+            itemsFound[stringified] = true;
+            }
+            return uniques;
+        }
+
+        makeRules(){
+            var rules = [];
+            myMap.forEachTile(function(tile){
+                if(tile.index != 0){
+                    let left = myMap.getTileAt(tile.x - 1, tile.y);
+                    let right = myMap.getTileAt(tile.x + 1, tile.y);
+                    let top = myMap.getTileAt(tile.x, tile.y - 1);
+                    let bottom = myMap.getTileAt(tile.x, tile.y + 1);
+                    if(left && left.index != 0){
+                        rules.push(['x',left.index,tile.index]);
+                    }
+                    if(right && right.index != 0){
+                        rules.push(['x',tile.index,right.index]);
+                    }
+                    if(top && top.index != 0){
+                        rules.push(['y',top.index,tile.index]);
+                    }
+                    if(bottom && bottom.index != 0){
+                        rules.push(['y',tile.index,bottom.index]);
+                    }
+                }
+            }, null, 25, 0, 24, 18); 
+            let uniq = this.multiDimensionalUnique(rules);
+            console.log(uniq);
+        }
+    }
+
+    const config = {
+        type: Phaser.AUTO,
+        width: 48 * 8,
+        height: 15 * 8,
+        scene: Example,
+        zoom: 4,
+        physics: {
+            default: 'arcade',
+            arcade: {
+                gravity: { y: 200 }
+            }
+        }
+    };
+
+    const game = new Phaser.Game(config);
+    </script>
+</body>
+</html>

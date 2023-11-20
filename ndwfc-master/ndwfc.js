@@ -186,6 +186,10 @@ var WFC = function({nd,weights,rules,wave}){
       propagate(coord(k))
     }
   }
+
+  this.singleStep = function(pos){
+      propagate(pos)
+  }
   
   this.step = function(){
     var min_ent = Infinity
