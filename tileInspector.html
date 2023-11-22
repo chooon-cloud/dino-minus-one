@@ -14,7 +14,7 @@
         cursors;
         preload ()
         {
-            this.load.image('city-tiles', 'tilemap_packed.png');
+            this.load.image('city-tiles', 'kenney_tiny-battle/Tilemap/tilemap_packed.png');
         }
 
         create ()
@@ -23,17 +23,17 @@
             this.tileSelected = -1;
             const level = [];
             var row = [];
-            for(var i = 0; i < 360; i++){
+            for(var i = 0; i < 18 * 11; i++){
                 row.push(i);
-                if(i % (24) == (23)){
-                    for(var j = 0; j < 24; j++){
+                if(i % (18) == (17)){
+                    for(var j = 0; j < 18; j++){
                         row.push(0);
                     }
                     level.push(row);
                     row = [];
                 }
             }
-            myMap = this.make.tilemap({ data: level, tileWidth: 8, tileHeight: 8 });
+            myMap = this.make.tilemap({ data: level, tileWidth: 16, tileHeight: 16 });
             const tileset = myMap.addTilesetImage('city-tiles');
             const layer = myMap.createLayer(0, tileset, 0, 0);
             this.marker = this.add.graphics();
@@ -59,12 +59,14 @@
 
                 if (tile)
                 {
-                    if(pointerTileX > 24){
+                    if(pointerTileX > 17){
                         myMap.putTileAt(this.tileSelected, pointerTileX, pointerTileY);
                     }
                     else {
                         this.tileSelected = tile.index;
                         console.log("tileSelected: " + tile.index);
+                        //console.log("pointerTileX: " + pointerTileX);
+                        //console.log("pointerTileY: " + pointerTileY);
                     }
                 }
             }
@@ -94,20 +96,20 @@
                     let right = myMap.getTileAt(tile.x + 1, tile.y);
                     let top = myMap.getTileAt(tile.x, tile.y - 1);
                     let bottom = myMap.getTileAt(tile.x, tile.y + 1);
-                    if(left && left.index != 0){
+                    if(left && left.x != 17){
                         rules.push(['x',left.index,tile.index]);
                     }
-                    if(right && right.index != 0){
+                    if(right){
                         rules.push(['x',tile.index,right.index]);
                     }
-                    if(top && top.index != 0){
+                    if(top){
                         rules.push(['y',top.index,tile.index]);
                     }
-                    if(bottom && bottom.index != 0){
+                    if(bottom){
                         rules.push(['y',tile.index,bottom.index]);
                     }
                 }
-            }, null, 25, 0, 24, 18); 
+            }, null, 18, 0, 18, 11); 
             let uniq = this.multiDimensionalUnique(rules);
             console.log(uniq);
         }
@@ -115,10 +117,10 @@
 
     const config = {
         type: Phaser.AUTO,
-        width: 48 * 8,
-        height: 15 * 8,
+        width: 17 * 2 * 16,
+        height: 11 * 16,
         scene: Example,
-        zoom: 4,
+        zoom: 2,
         physics: {
             default: 'arcade',
             arcade: {

@@ -9,51 +9,35 @@
 
     <script>
     var myMap;
+    var player;
+    var cursors;
+    var gameOver = false;
+    var myWfc;
+    var myWfcSize = 20;
+
     class Example extends Phaser.Scene
     {
         preload ()
         {
-            this.load.image('city-tiles', 'tilemap_packed.png');
+            this.load.image('city-tiles', 'kenney_tiny-battle/Tilemap/tilemap_packed.png');
+            this.load.spritesheet('dino', 'superpowers-asset-packs-characters/characters/prehistoric-platformer/monsters/mini-tyrannosaurus-1.png', { frameWidth: 80, frameHeight: 62 });
         }
 
         tileRules(){
-            const arr1 = [
-                ["x", 1, 0],
-                ["x", 0, 0],
-                ["x", 0, 1],
-                ["y", 0, 0],
-                ["y", 0, 1],
-                ["y", 1, 0],
-                ["x", 0, 2],
-                ["x", 1, 2],
-                ["y", 0, 2],
-                ["y", 1, 2],
-                ["y", 0, 3],
-                ["y", 1, 3],
-                ["y", 0, 4],
-                ["y", 1, 4],
-                ["x", 4, 0],
-                ["x", 4, 1],
-                ["y", 7, 0],
-                ["y", 7, 1],
-                ["x", 10, 0],
-                ["x", 10, 1],
-                ["y", 10, 0],
-                ["y", 10, 1],
-                ["y", 9, 0],
-                ["y", 9, 1],
-                ["y", 8, 0],
-                ["y", 8, 1],
-                ["x", 0, 8],
-                ["x", 1, 8],
-                ["x", 0, 7],
-                ["x", 1, 7],
-                
-            ];
+            //return [["x",37,37],["y",37,37],["y",37,92],["y",37,55],["y",37,93],["x",37,0],["x",37,92],["x",92,55],["y",92,38],["x",55,55],["y",55,0],["x",55,93],["x",93,37],["y",93,36],["x",37,38],["x",38,0],["y",38,38],["x",0,36],["x",36,37],["y",36,36],["x",0,18],["x",18,19],["y",0,18],["y",18,36],["x",19,19],["y",0,19],["y",19,37],["x",19,20],["x",20,0],["y",0,20],["y",20,38],["x",0,2],["x",2,0],["y",0,2],["y",2,2],["x",2,2],["y",2,0],["y",36,54],["y",38,56],["x",0,54],["x",54,55],["y",54,0],["x",55,56],["x",56,0],["y",56,0],["y",38,91],["y",36,90],["x",37,91],["x",91,19],["y",91,37],["x",19,90],["x",90,37],["y",90,37],["x",0,3],["x",3,19],["y",0,3],["y",3,57],["y",19,0],["x",19,4],["x",4,0],["y",0,4],["y",4,57],["x",0,1],["x",1,0],["y",0,1],["y",1,0],["x",0,57],["x",57,0],["y",57,21],["y",57,57],["x",0,21],["x",21,4],["y",21,0],["x",57,1],["y",57,22],["x",3,22],["y",3,21],["x",22,0],["y",22,19],["x",1,1],["y",1,19],["x",21,19],["y",90,36],["y",57,75],["x",19,75],["x",75,19],["y",75,37],["x",0,126],["x",126,0],["y",0,126],["y",126,144],["x",0,144],["x",144,0],["y",144,146],["x",2,144],["y",144,144],["x",0,109],["x",109,146],["y",0,109],["y",109,0],["x",146,110],["y",146,144],["x",110,110],["y",0,110],["y",110,0],["x",110,130],["x",130,110],["y",0,130],["y",130,148],["x",110,111],["x",111,0],["y",0,111],["y",111,0],["y",144,162],["x",0,148],["x",148,0],["y",148,57],["x",1,162],["x",162,0],["y",162,0],["x",0,162],["x",0,127],["x",127,110],["y",0,127],["y",127,144],["x",110,129],["x",129,0],["y",0,129],["y",129,144],["x",129,36],["y",129,147],["x",0,147],["x",147,36],["y",147,147],["y",144,163],["y",144,165],["x",110,147],["y",147,144],["x",0,163],["x",163,164],["y",163,0],["x",164,164],["y",0,164],["y",164,0],["x",164,165],["x",165,0],["y",165,0],["x",144,36],["x",163,110],["x",110,165],["x",165,36]];
+            return [["x",0,0],["y",0,0],["x",0,126],["x",126,0],["y",0,126],["y",126,147],["x",0,127],["x",127,110],["y",0,127],["y",127,144],["x",110,110],["y",0,110],["y",110,0],["x",110,147],["x",147,0],["y",147,144],["x",110,129],["x",129,0],["y",0,129],["y",129,144],["x",0,144],["x",144,0],["y",144,164],["y",144,146],["y",144,147],["x",0,109],["x",109,164],["y",0,109],["y",109,0],["x",164,110],["y",164,0],["x",110,146],["x",146,110],["y",146,144],["y",144,144],["y",144,163],["y",144,165],["y",144,162],["x",0,163],["x",163,110],["y",163,0],["x",110,165],["x",165,0],["y",165,0],["x",0,162],["x",162,0],["y",162,0],["x",109,110],["x",110,111],["x",111,0],["y",0,111],["y",111,0]];
+        }
 
-            const rules = arr1.concat([["x",11,9],["y",11,7],["x",9,9],["y",9,15],["y",9,16],["x",9,12],["y",9,17],["y",12,5],["x",7,15],["y",7,7],["x",15,16],["y",15,18],["x",16,16],["y",16,19],["x",16,17],["x",17,5],["y",17,20],["y",5,5],["x",7,18],["x",18,19],["y",18,18],["x",19,19],["y",19,19],["y",19,31],["y",19,22],["y",19,32],["x",19,20],["x",20,5],["y",20,20],["x",19,31],["x",31,22],["y",31,20],["x",22,22],["y",22,2],["y",22,3],["x",22,32],["y",22,4],["x",32,19],["y",32,18],["x",20,2],["x",2,3],["y",2,5],["x",3,3],["y",3,24],["y",3,6],["x",3,4],["x",4,18],["y",4,7],["x",5,24],["x",24,6],["y",24,6],["x",6,6],["y",6,6],["x",6,7],["x",5,6],["y",5,8],["y",6,9],["y",7,10],["y",18,25],["y",19,26],["y",20,27],["x",20,8],["y",20,33],["x",8,9],["y",8,16],["y",9,28],["x",9,10],["x",10,25],["y",10,16],["x",25,26],["y",25,34],["x",26,26],["y",26,19],["x",26,27],["x",27,5],["y",27,20],["x",19,33],["x",33,16],["y",33,19],["x",16,28],["x",28,16],["y",28,29],["x",16,34],["x",34,19],["y",34,19],["x",19,29],["x",29,19],["y",29,29],["y",18,21],["y",29,30],["y",20,23],["x",7,21],["y",7,13],["x",21,22],["y",21,3],["x",22,30],["x",30,22],["y",30,3],["x",22,23],["x",23,5],["y",23,3],["y",5,14],["x",13,3],["x",3,14]]);
-
-            return rules;
+        multiDimensionalUnique(arr) {
+            var uniques = [];
+            var itemsFound = {};
+            for(var i = 0, l = arr.length; i < l; i++) {
+            var stringified = JSON.stringify(arr[i]);
+            if(itemsFound[stringified]) { continue; }
+            uniques.push(arr[i]);
+            itemsFound[stringified] = true;
+            }
+            return uniques;
         }
 
         tileWeights(arr){
@@ -73,56 +57,72 @@
                 if(tempSet.has(i)) ret.push(1);
                 else ret.push(0);
             }
+            ret[0] = 0.25;
+            /*
+            ret[109] = 1;
+            ret[110] = 1;
+            ret[129] = 0.25;
+            ret[128] = 0.25;
+            ret[127] = 0.25;
+            ret[145] = 0.25;
+            ret[146] = 0;
+            ret[147] = 0.25;
+            ret[165] = 0.25;
+            ret[164] = 0.25;
+            ret[163] = 0.25;
+            ret[162] = 1;
+            ret[144] = 0.25;
+            ret[126] = 1;
+            */
             return ret;  
         }
 
         generateMap(){
+            let startTIme = Math.floor(Date.now() / 1000);
             let nd = 2;
             let rules = this.tileRules();
             let weights = this.tileWeights(rules);
             // console.log(weights);
 
-            let wfc = new WFC({ nd, rules, weights, wave: { "0,0": 6} });
+            myWfc = new WFC({ nd, rules, weights, wave: { "0,0": 146} });
             //let wfc = new WFC({ nd, rules, weights});
-            let size = 5;
-            wfc.expand([-size,-size],[size,size]);  
+  
             let i = 0;
-            
+            let current = 5;
             while (true){
                 
-                let done = wfc.step();
+                let done = myWfc.step();
                 if (done){ 
-                    break;
+                    if(current > myWfcSize){
+                        break;
+                    }
+                    else {
+                        current += 5;
+                        myWfc.expand([-current * myWfcSize,-current],[current,current]);
+                    }
                 }
-                
-                //wfc.singleStep([i,i]);
                 i++;
-                /*
-                if(i == 5){
-                    size += 2
-		            wfc.expand([-size,-size],[size,size]); 
-                }
-                */
-                console.log(wfc.readout());
-                if(i > 25) break;
+                if(i > 30) break;
             }
-            
+            console.log(Math.floor(Date.now() / 1000) - startTIme);
+            console.log(myWfc.readout());
+        }
+
+        convertWfcReadOut(){
             let level = [];
             let row = [];
-            for (let j = 0; j < size * 2 + 1; j++){
-                for(let k = 0; k < size * 2 + 1; k++){
+            for (let j = 0; j < myWfcSize * 2 + 1; j++){
+                for(let k = 0; k < myWfcSize * 2 + 1; k++){
                     row.push(0);
                 }
                 level.push(row);
                 row = [];
             }
-            console.log(level);
-            let readout = wfc.readout();
-            //console.log(readout);
+            let readout = myWfc.readout();
             for (const [key, value] of Object.entries(readout)) {
                 const coords = key.split(","); 
-                let x = parseInt(coords[0]) + size;
-                let y = parseInt(coords[1]) + size;
+                let x = parseInt(coords[0]) + myWfcSize;
+                let y = parseInt(coords[1]) + myWfcSize;
                 level[x][y] = value;
             }
             return level;
@@ -130,28 +130,95 @@
 
         create ()
         {
-            const level = this.generateMap();
+            this.generateMap();
+            const level = this.convertWfcReadOut();
+            console.log(level);
             // When loading from an array, make sure to specify the tileWidth and tileHeight
-            myMap = this.make.tilemap({ data: level, tileWidth: 8, tileHeight: 8 });
+            myMap = this.make.tilemap({ data: level, tileWidth: 16, tileHeight: 16 });
             const tiles = myMap.addTilesetImage('city-tiles');
-            const layer = myMap.createLayer(0, tiles, 0, 0);     
-            //layer.setScale(4);
+            const layer = myMap.createLayer(0, tiles, -32, -32);
+
+            player = this.physics.add.sprite(this.cameras.main.centerX, this.cameras.main.centerY, 'dino');
+            this.anims.create({
+                key: 'idle',
+                frames: this.anims.generateFrameNumbers('dino', { start: 0, end: 6 }),
+                frameRate: 10,
+                repeat: -1
+            });
+
+            this.anims.create({
+                key: 'right',
+                frames: this.anims.generateFrameNumbers('dino', { start: 6, end: 10 }),
+                frameRate: 10,
+                repeat: -1
+            });
+
+            //this.cameras.main.setBounds();
+            this.cameras.main.startFollow(player);
+
+            cursors = this.input.keyboard.createCursorKeys();
+        }
+
+        update ()
+        {
+            if (gameOver)
+            {
+                return;
+            }
+
+            if (cursors.left.isDown)
+            {
+                player.setVelocityX(-160);
+                player.setFlipX(true);
+                player.anims.play('right', true);
+                this.mayExpandMap();
+            }
+            else if (cursors.right.isDown)
+            {
+                player.setVelocityX(160);
+                player.setFlipX(false);
+                player.anims.play('right', true);
+                this.mayExpandMap();
+            }
+            else if (cursors.down.isDown)
+            {
+                player.setVelocityY(160);
+                player.anims.play('right', true);
+                this.mayExpandMap();
+            }
+            else if (cursors.up.isDown)
+            {
+                player.setVelocityY(-160);
+
+                player.anims.play('right', true);
+                this.mayExpandMap();
+            }
+            else {
+                player.anims.play('idle', true);
+                player.setVelocityX(0);
+                player.setVelocityY(0);
+            }
+        }
+
+        mayExpandMap(){
+            //console.log(this.cameras.main.x + ", " + this.cameras.main.y);
         }
     }
 
     const config = {
         type: Phaser.AUTO,
-        width: 100,
-        height: 75,
-        scene: Example,
-        zoom: 8,
-        //zoom: 4,
+        width: 12.5 * 16,
+        height: 6.25 * 16,
         physics: {
             default: 'arcade',
             arcade: {
-                gravity: { y: 200 }
+                gravity: { y: 0 },
+                debug: false
             }
-        }
+        },
+        scene: Example,
+        zoom: 4,
+        autoCenter: true
     };
 
     const game = new Phaser.Game(config);       
