@@ -2,6 +2,7 @@
 <html>
 <head>
     <script src="phaser.min.js"></script>
+    <script src="rexshakepositionplugin.min.js"></script>
     <script src="ndwfc-master/ndwfc.js"></script>
     <script src="ndwfc-master/ndwfc-tools.js"></script>
     <script src="Victim.js"></script>
@@ -20,19 +21,19 @@
     }
 
     var adjustDinoSize = function() {
-        player.scaleX = player.scaleY = dinoScale;
-        //player.displayWidth = 80 * dinoScale;
-        //player.displayHeight = 64 * dinoScale;
-        //player.setSize(80 * dinoScale, 64 * dinoScale);
+        player.setScale(dinoScale);
+        playerHitbox.setScale(dinoScale);
     }
 
     var myMap;
     var player;
+    var playerHitbox;
     var dinoScale = 0.25;
     var cursors;
     var gameOver = false;
     var buildings = [];
     var people;
+    var buildingGroup;
     var myWfc;
     var myWfcSize = 4;
     var supertiles =
@@ -134,14 +135,17 @@
         preload ()
         {
             this.load.image('city-tiles', 'tilemap_packed.png');
+            this.load.image('dinoHitbox', 'dinoHitbox.png');
             this.load.spritesheet('dino', 'superpowers-asset-packs-characters/characters/prehistoric-platformer/monsters/mini-tyrannosaurus-1.png', { frameWidth: 80, frameHeight: 62 });
             this.load.spritesheet('person1','person1.png',{frameWidth: 8,frameHeight: 8});
             this.load.spritesheet('person2','person2.png',{frameWidth: 8,frameHeight: 8});
             this.load.spritesheet('person3','person3.png',{frameWidth: 8,frameHeight: 8});
             this.load.spritesheet('person4','person4.png',{frameWidth: 8,frameHeight: 8});
             this.load.image('complex', 'kenney_tiny-battle/Tiles/tile_0062.png');
+
             this.load.image('factory', 'kenney_tiny-battle/Tiles/tile_0065.png');
 
+            this.load.plugin('rexshakepositionplugin', 'rexshakepositionplugin.min.js', true);
         }
 
         tileRules(){
@@ -258,7 +262,8 @@
             const layer = myMap.createLayer(0, tiles, 0, 0);
 
             player = this.physics.add.sprite(this.cameras.main.centerX, this.cameras.main.centerY, 'dino');
-
+            playerHitbox = this.physics.add.image(this.cameras.main.centerX, this.cameras.main.centerY,'dinoHitbox');
+            playerHitbox.visible = false;
             this.anims.create({
                 key: 'idle',
                 frames: this.anims.generateFrameNumbers('dino', { start: 0, end: 6 }),
@@ -273,6 +278,12 @@
                 repeat: -1
             });
 
+            this.anims.create({
+                key: 'eat',
+                frames: this.anims.generateFrameNumbers('dino', { start: 11, end: 13 }),
+                frameRate: 10,
+            });
+
 
 
             this.cameras.main.setBounds(0,0,952,1052);
@@ -281,6 +292,7 @@
             cursors = this.input.keyboard.createCursorKeys();
 
             this.physics.world.setBounds(0,0,1152,1152, true, true, true, true);
+
             player.setCollideWorldBounds(true);
             adjustDinoSize();
 
@@ -319,14 +331,19 @@
 			    }
 		    });
 
-		    let peopleCollider = this.physics.add.collider(player, people, function(obj1,obj2) {
-                peopleCollider.active = false;
-                dinoScale += 0.1;
-                adjustDinoSize();
-                people.killAndHide(obj2);
-            }, undefined, this);
+            buildingGroup = this.physics.add.group();
 
-            people.get(this.cameras.main.centerX + 32, this.cameras.main.centerY, 'person1', 1);
+		    let peopleCollider = this.physics.add.collider(playerHitbox, people, function(obj1,obj2) {
+                //peopleCollider.active = false;
+                if(dinoScale < 1){
+                    dinoScale += 0.05;
+                    adjustDinoSize();
+                }
+                player.eating = true;
+                player.anims.play('eat', true);
+                obj2.visible = false;
+                obj2.disableBody();
+            }, undefined, this);
 
             // set up buildings
             myMap.forEachTile(function(tile){
@@ -380,8 +397,47 @@
                 }
             }, null, 0, 0, 72, 71); 
             for(let i = 0; i < buildings.length; i++) {
-                this.physics.add.image(buildings[i].x * 16 + 8, buildings[i].y * 16 + 8, buildings[i].ref);
+                let building = this.physics.add.image(buildings[i].x * 16 + 8, buildings[i].y * 16 + 8, buildings[i].ref);
+                building.ref = buildings[i].ref;
+                building.setPushable(false);
+                building.health = 100;
+                building.residents = 5;
+                building.shake = this.plugins.get('rexshakepositionplugin').add(building, {
+                    duration: 100,
+                    axis: 'h',
+                    magnitude: 2,
+                    mode: 'effect'
+                })
+                buildingGroup.add(building);
+                //tween.onComplete.add(function(sprite, tween) { sprite.kill(); }, this);
             }
+
+            let buildingCollider = this.physics.add.collider(playerHitbox,buildingGroup, function(obj1,obj2){
+                if(obj2.health > 0){
+                    let axis = (obj2.body.touching.up || obj2.body.touching.down) ? 'v':'h';
+                    obj2.shake.setAxisMode(axis);
+                    obj2.shake.shake();
+                    obj2.health -= 1;
+                    let d = Math.random();
+                    if(d <= 0.1 && obj2.residents > 0){
+                        let personAppearance = Math.floor(Math.random() * 10) % 4 + 1; 
+                        let person = people.get(obj2.x, obj2.y, 'person'+personAppearance);
+                        obj2.residents -= 1;
+                    }
+                }
+                else {
+                    //buildingGroup.killAndHide(obj2);
+                    obj2.visible = false;
+                    obj2.disableBody();
+                }
+            });
+
+            player.depth = 999;
+            player.eating = false;
+            player.on(Phaser.Animations.Events.ANIMATION_COMPLETE, function () {
+                console.log("eat");
+                player.eating = false;
+            }, this);
         }
 
         update ()
@@ -393,36 +449,45 @@
 
             if (cursors.left.isDown)
             {
-                player.setVelocityX(-160 * dinoScale);
+                //player.setVelocityX(-160 * dinoScale);
                 player.setFlipX(true);
-                player.anims.play('right', true);
+                if(!player.eating) player.anims.play('right', true);
+                playerHitbox.setVelocityX(-160 * dinoScale);
+
                 //console.log(player.x);
             }
             else if (cursors.right.isDown)
             {
-                player.setVelocityX(160 * dinoScale);
+                //player.setVelocityX(160 * dinoScale);
                 player.setFlipX(false);
-                player.anims.play('right', true);   
+                if(!player.eating) player.anims.play('right', true);   
+                playerHitbox.setVelocityX(160 * dinoScale);
+
                 //console.log(player.x);
             }
             else if (cursors.down.isDown)
             {
-                player.setVelocityY(160 * dinoScale);
-                player.anims.play('right', true);     
+                //player.setVelocityY(160 * dinoScale);
+                if(!player.eating) player.anims.play('right', true);     
                 //console.log(player.y);
+                playerHitbox.setVelocityY(160 * dinoScale);
             }
             else if (cursors.up.isDown)
             {
-                player.setVelocityY(-160 * dinoScale);
+                //player.setVelocityY(-160 * dinoScale);
 
-                player.anims.play('right', true);
-                //console.log(player.y);            
+                if(!player.eating) player.anims.play('right', true);
+                //console.log(player.y); 
+                playerHitbox.setVelocityY(-160 * dinoScale);
+
             }
             else {
-                player.anims.play('idle', true);
-                player.setVelocityX(0);
-                player.setVelocityY(0);
+                if(!player.eating) player.anims.play('idle', true);
+                playerHitbox.setVelocityX(0);
+                playerHitbox.setVelocityY(0);
             }
+            player.x = playerHitbox.x;
+            player.y = playerHitbox.y - 18 * dinoScale;
         }
     }
 

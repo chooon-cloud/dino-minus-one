@@ -4,20 +4,20 @@ class Victim extends Phaser.Physics.Arcade.Sprite
 	direction = 0;
 	moveEvent;
 
-	constructor(scene, x, y, texture, frame, type)
+	constructor(scene, x, y, texture, frame)
 	{
 		super(scene, x, y, texture, frame)
 
-		switch(type) {
-			case 1:
+		switch(texture) {
+			case "person2":
 			// code block
 				this.anims.play('person2Motion');
 			break;
-			case 2:
+			case "person3":
 			// code block
 				this.anims.play('person3Motion');
 			break;
-			case 3:
+			case "person4":
 			// code block
 				this.anims.play('person4Motion');
 			break;
@@ -43,6 +43,7 @@ class Victim extends Phaser.Physics.Arcade.Sprite
 			},
 			loop: true
 		})
+		this.direction = randomDirection(this.direction);
 	}
 
 	destroy(fromScene)
