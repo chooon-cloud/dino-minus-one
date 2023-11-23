@@ -4,77 +4,193 @@
     <script src="phaser.min.js"></script>
     <script src="ndwfc-master/ndwfc.js"></script>
     <script src="ndwfc-master/ndwfc-tools.js"></script>
+    <script src="Victim.js"></script>
 </head>
 <body>
 
     <script>
+
+    var tileIsRoad = function(index){
+        let boolean1 = (index > 109 && index < 111);
+        let boolean2 = (index > 126 && index < 129);
+        let boolean3 = (index > 144 && index < 147);
+        let boolean4 = (index > 162 && index < 165);
+
+        return (boolean1 || boolean2 || boolean3 || boolean4);
+    }
+
+    var adjustDinoSize = function() {
+        player.scaleX = player.scaleY = dinoScale;
+        //player.displayWidth = 80 * dinoScale;
+        //player.displayHeight = 64 * dinoScale;
+        //player.setSize(80 * dinoScale, 64 * dinoScale);
+    }
+
     var myMap;
     var player;
+    var dinoScale = 0.25;
     var cursors;
     var gameOver = false;
+    var buildings = [];
+    var people;
     var myWfc;
-    var myWfcSize = 20;
+    var myWfcSize = 4;
+    var supertiles =
+    [
+        [
+            [0,144,0,0,0,0,144,0],
+            [110,146,110,110,110,110,146,110],
+            [0,144,0,0,0,0,144,0],
+            [0,144,0,0,0,0,144,0],
+            [0,144,0,0,0,0,144,0],
+            [0,144,0,0,0,0,144,0],
+            [110,146,110,110,110,110,146,110],
+            [0,144,0,0,0,0,144,0]
+        ], // supertile #0
+        [
+            [0,0,0,0,0,0,0,0],
+            [110,110,110,110,110,110,110,110],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [110,110,110,110,110,110,110,110],
+            [0,0,0,0,0,0,0,0]
+        ], // supertile #1
+        [
+            [0,144,0,0,0,0,144,0],
+            [0,144,0,0,0,0,144,0],
+            [0,144,0,0,0,0,144,0],
+            [0,144,0,0,0,0,144,0],
+            [0,144,0,0,0,0,144,0],
+            [0,144,0,0,0,0,144,0],
+            [0,144,0,0,0,0,144,0],
+            [0,144,0,0,0,0,144,0]
+        ], // supertile #2
+        [
+            [0,144,0,0,0,0,144,0],
+            [0,144,0,0,0,0,144,0],
+            [0,144,18,19,19,20,144,0],
+            [0,144,36,37,37,38,144,0],
+            [0,144,36,37,37,38,144,0],
+            [0,144,54,55,55,56,144,0],
+            [0,144,0,0,0,0,144,0],
+            [0,144,0,0,0,0,144,0]
+        ], // supertile #3
+        [
+            [0,144,0,0,0,0,144,0],
+            [0,144,0,0,0,0,162,0],
+            [0,144,0,0,0,0,0,0],
+            [0,163,110,110,110,110,129,0],
+            [0,0,0,0,0,0,144,0],
+            [0,126,0,0,0,0,144,0],
+            [0,144,0,0,0,0,144,0],
+            [0,144,0,0,0,0,144,0]
+        ], // supertile #4
+        [
+            [0,0,0,0,0,0,0,0],
+            [110,110,110,128,110,110,110,110],
+            [0,0,0,144,0,0,0,0],
+            [0,0,0,144,0,0,0,0],
+            [0,0,0,144,0,0,0,0],
+            [0,0,0,144,0,0,0,0],
+            [110,110,110,164,110,110,110,110],
+            [0,0,0,0,0,0,0,0]
+        ], // supertile #5
+        [
+            [0,144,0,0,0,0,144,0],
+            [0,144,0,0,0,127,165,0],
+            [0,144,0,0,127,165,0,0],
+            [0,163,110,110,165,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [19,19,19,19,19,19,19,19],
+            [37,37,37,37,37,37,37,37],
+            [37,37,37,37,37,37,37,37]
+        ], // supertile #6
+        [
+            [0,0,0,0,0,0,0,18],
+            [0,0,0,0,0,0,0,36],
+            [0,0,0,0,0,0,0,36],
+            [0,0,0,0,0,0,0,36],
+            [0,0,0,0,0,0,0,36],
+            [19,19,19,19,19,19,19,74],
+            [37,37,37,37,37,37,37,37],
+            [37,37,37,37,37,37,37,37]
+        ], // supertile #7
+        [
+            [20,0,0,0,0,0,0,0],
+            [38,0,0,0,0,0,0,0],
+            [38,0,0,0,0,0,0,0],
+            [38,0,0,0,0,0,0,0],
+            [38,0,0,0,0,0,0,0],
+            [72,19,19,19,19,19,19,19],
+            [37,37,37,37,37,37,37,37],
+            [37,37,37,37,37,37,37,37]
+        ] // supertile #8
+    ];
 
     class Example extends Phaser.Scene
     {
         preload ()
         {
-            this.load.image('city-tiles', 'kenney_tiny-battle/Tilemap/tilemap_packed.png');
+            this.load.image('city-tiles', 'tilemap_packed.png');
             this.load.spritesheet('dino', 'superpowers-asset-packs-characters/characters/prehistoric-platformer/monsters/mini-tyrannosaurus-1.png', { frameWidth: 80, frameHeight: 62 });
+            this.load.spritesheet('person1','person1.png',{frameWidth: 8,frameHeight: 8});
+            this.load.spritesheet('person2','person2.png',{frameWidth: 8,frameHeight: 8});
+            this.load.spritesheet('person3','person3.png',{frameWidth: 8,frameHeight: 8});
+            this.load.spritesheet('person4','person4.png',{frameWidth: 8,frameHeight: 8});
+            this.load.image('complex', 'kenney_tiny-battle/Tiles/tile_0062.png');
+            this.load.image('factory', 'kenney_tiny-battle/Tiles/tile_0065.png');
+
         }
 
         tileRules(){
-            //return [["x",37,37],["y",37,37],["y",37,92],["y",37,55],["y",37,93],["x",37,0],["x",37,92],["x",92,55],["y",92,38],["x",55,55],["y",55,0],["x",55,93],["x",93,37],["y",93,36],["x",37,38],["x",38,0],["y",38,38],["x",0,36],["x",36,37],["y",36,36],["x",0,18],["x",18,19],["y",0,18],["y",18,36],["x",19,19],["y",0,19],["y",19,37],["x",19,20],["x",20,0],["y",0,20],["y",20,38],["x",0,2],["x",2,0],["y",0,2],["y",2,2],["x",2,2],["y",2,0],["y",36,54],["y",38,56],["x",0,54],["x",54,55],["y",54,0],["x",55,56],["x",56,0],["y",56,0],["y",38,91],["y",36,90],["x",37,91],["x",91,19],["y",91,37],["x",19,90],["x",90,37],["y",90,37],["x",0,3],["x",3,19],["y",0,3],["y",3,57],["y",19,0],["x",19,4],["x",4,0],["y",0,4],["y",4,57],["x",0,1],["x",1,0],["y",0,1],["y",1,0],["x",0,57],["x",57,0],["y",57,21],["y",57,57],["x",0,21],["x",21,4],["y",21,0],["x",57,1],["y",57,22],["x",3,22],["y",3,21],["x",22,0],["y",22,19],["x",1,1],["y",1,19],["x",21,19],["y",90,36],["y",57,75],["x",19,75],["x",75,19],["y",75,37],["x",0,126],["x",126,0],["y",0,126],["y",126,144],["x",0,144],["x",144,0],["y",144,146],["x",2,144],["y",144,144],["x",0,109],["x",109,146],["y",0,109],["y",109,0],["x",146,110],["y",146,144],["x",110,110],["y",0,110],["y",110,0],["x",110,130],["x",130,110],["y",0,130],["y",130,148],["x",110,111],["x",111,0],["y",0,111],["y",111,0],["y",144,162],["x",0,148],["x",148,0],["y",148,57],["x",1,162],["x",162,0],["y",162,0],["x",0,162],["x",0,127],["x",127,110],["y",0,127],["y",127,144],["x",110,129],["x",129,0],["y",0,129],["y",129,144],["x",129,36],["y",129,147],["x",0,147],["x",147,36],["y",147,147],["y",144,163],["y",144,165],["x",110,147],["y",147,144],["x",0,163],["x",163,164],["y",163,0],["x",164,164],["y",0,164],["y",164,0],["x",164,165],["x",165,0],["y",165,0],["x",144,36],["x",163,110],["x",110,165],["x",165,36]];
-            return [["x",0,0],["y",0,0],["x",0,126],["x",126,0],["y",0,126],["y",126,147],["x",0,127],["x",127,110],["y",0,127],["y",127,144],["x",110,110],["y",0,110],["y",110,0],["x",110,147],["x",147,0],["y",147,144],["x",110,129],["x",129,0],["y",0,129],["y",129,144],["x",0,144],["x",144,0],["y",144,164],["y",144,146],["y",144,147],["x",0,109],["x",109,164],["y",0,109],["y",109,0],["x",164,110],["y",164,0],["x",110,146],["x",146,110],["y",146,144],["y",144,144],["y",144,163],["y",144,165],["y",144,162],["x",0,163],["x",163,110],["y",163,0],["x",110,165],["x",165,0],["y",165,0],["x",0,162],["x",162,0],["y",162,0],["x",109,110],["x",110,111],["x",111,0],["y",0,111],["y",111,0]];
-        }
-
-        multiDimensionalUnique(arr) {
-            var uniques = [];
-            var itemsFound = {};
-            for(var i = 0, l = arr.length; i < l; i++) {
-            var stringified = JSON.stringify(arr[i]);
-            if(itemsFound[stringified]) { continue; }
-            uniques.push(arr[i]);
-            itemsFound[stringified] = true;
-            }
-            return uniques;
+            return [
+                ["x", 0,0],
+                ["y", 0,0],
+                ["x", 0,1],
+                ["x", 1,0],
+                ["x", 1,1],
+                ["x", 0,5],
+                ["x", 5,0],
+                ["x", 5,5],
+                ["x", 1,5],
+                ["x", 5,1],
+                ["y", 1,5],
+                ["y", 5,1],
+                ["y", 0,2],
+                ["y", 2,0],
+                ["y", 0,3],
+                ["y", 3,0],
+                ["y", 2,3],
+                ["y", 3,2],
+                ["x", 2,3],
+                ["x", 3,2],
+                ["y", 2,4],
+                ["y", 4,2],
+                ["x", 2,4],
+                ["x", 4,2],
+                ["y", 4,3],
+                ["y", 3,4],
+                ["x", 4,3],
+                ["x", 3,4],
+                ["y", 2,2],
+                ["y", 3,3],
+                ["y", 4,4],
+                ["y", 0,6],
+                ["y", 1,6],
+                ["y", 5,6],
+                ["x", 6,7],
+                ["y", 1,7],
+                ["y", 5,7],
+                ["y", 1,8],
+                ["y", 5,8],
+                ["x", 8,6],
+            ];
         }
 
         tileWeights(arr){
-            
-            let largestIndex = -1;
-            let temp = [];
-            arr.forEach(function(item){
-                temp.push(item[1]);
-                temp.push(item[2]);
-                if(item[1] > largestIndex) largestIndex = item[1];
-                if(item[2] > largestIndex) largestIndex = item[2];
-            });
-            let tempSet = new Set(temp);
-            //console.log(tempSet);
-            let ret = [];
-            for(let i = 0; i < largestIndex; i++){
-                if(tempSet.has(i)) ret.push(1);
-                else ret.push(0);
-            }
-            ret[0] = 0.25;
-            /*
-            ret[109] = 1;
-            ret[110] = 1;
-            ret[129] = 0.25;
-            ret[128] = 0.25;
-            ret[127] = 0.25;
-            ret[145] = 0.25;
-            ret[146] = 0;
-            ret[147] = 0.25;
-            ret[165] = 0.25;
-            ret[164] = 0.25;
-            ret[163] = 0.25;
-            ret[162] = 1;
-            ret[144] = 0.25;
-            ret[126] = 1;
-            */
-            return ret;  
+            return [1,1,0.5,0.5,1,1,1,1,1];  
         }
 
         generateMap(){
@@ -84,35 +200,29 @@
             let weights = this.tileWeights(rules);
             // console.log(weights);
 
-            myWfc = new WFC({ nd, rules, weights, wave: { "0,0": 146} });
+            myWfc = new WFC({ nd, rules, weights});
+            //myWfc = new WFC({ nd, rules, weights, wave: { "0,0": 0} });
             //let wfc = new WFC({ nd, rules, weights});
-  
+            myWfc.expand([-myWfcSize,-myWfcSize],[myWfcSize,myWfcSize]);
             let i = 0;
-            let current = 5;
             while (true){
                 
                 let done = myWfc.step();
                 if (done){ 
-                    if(current > myWfcSize){
-                        break;
-                    }
-                    else {
-                        current += 5;
-                        myWfc.expand([-current * myWfcSize,-current],[current,current]);
-                    }
+                    break;
                 }
                 i++;
                 if(i > 30) break;
             }
-            console.log(Math.floor(Date.now() / 1000) - startTIme);
-            console.log(myWfc.readout());
+            //console.log(Math.floor(Date.now() / 1000) - startTIme);
+            //console.log(myWfc.readout());
         }
 
         convertWfcReadOut(){
             let level = [];
             let row = [];
-            for (let j = 0; j < myWfcSize * 2 + 1; j++){
-                for(let k = 0; k < myWfcSize * 2 + 1; k++){
+            for (let j = 0; j < (myWfcSize * 2 + 1)*8; j++){
+                for(let k = 0; k < (myWfcSize * 2 + 1)*8; k++){
                     row.push(0);
                 }
                 level.push(row);
@@ -121,9 +231,18 @@
             let readout = myWfc.readout();
             for (const [key, value] of Object.entries(readout)) {
                 const coords = key.split(","); 
-                let x = parseInt(coords[0]) + myWfcSize;
-                let y = parseInt(coords[1]) + myWfcSize;
-                level[x][y] = value;
+                let x = (parseInt(coords[0]) + parseInt(myWfcSize))*8;
+                let y = (parseInt(coords[1]) + parseInt(myWfcSize))*8;
+                
+                //console.log("level["+x+","+y+"]");
+                for(let l = 0; l < 8; l++){
+                    for(let m = 0; m < 8; m++){
+                        let x2 = parseInt(x) + parseInt(l);
+                        let y2 = parseInt(y) + parseInt(m);
+                        //console.log("level["+x2+","+y2 + "] is " + supertiles[value][l][m]);
+                        level[x2][y2] = supertiles[value][l][m];
+                    }
+                }
             }
             return level;
         }
@@ -136,9 +255,10 @@
             // When loading from an array, make sure to specify the tileWidth and tileHeight
             myMap = this.make.tilemap({ data: level, tileWidth: 16, tileHeight: 16 });
             const tiles = myMap.addTilesetImage('city-tiles');
-            const layer = myMap.createLayer(0, tiles, -32, -32);
+            const layer = myMap.createLayer(0, tiles, 0, 0);
 
             player = this.physics.add.sprite(this.cameras.main.centerX, this.cameras.main.centerY, 'dino');
+
             this.anims.create({
                 key: 'idle',
                 frames: this.anims.generateFrameNumbers('dino', { start: 0, end: 6 }),
@@ -153,10 +273,115 @@
                 repeat: -1
             });
 
-            //this.cameras.main.setBounds();
+
+
+            this.cameras.main.setBounds(0,0,952,1052);
             this.cameras.main.startFollow(player);
 
             cursors = this.input.keyboard.createCursorKeys();
+
+            this.physics.world.setBounds(0,0,1152,1152, true, true, true, true);
+            player.setCollideWorldBounds(true);
+            adjustDinoSize();
+
+            //let person = this.physics.add.sprite(this.cameras.main.centerX + 32, this.cameras.main.centerY, 'person1');
+             this.anims.create({
+                key: 'person1Motion',
+                frames: this.anims.generateFrameNumbers('person1', { start: 0, end: 2 }),
+                frameRate: 10,
+                repeat: -1
+            });
+
+             this.anims.create({
+                key: 'person2Motion',
+                frames: this.anims.generateFrameNumbers('person2', { start: 0, end: 2 }),
+                frameRate: 10,
+                repeat: -1
+            });
+             this.anims.create({
+                key: 'person3Motion',
+                frames: this.anims.generateFrameNumbers('person3', { start: 0, end: 2 }),
+                frameRate: 10,
+                repeat: -1
+            });
+             this.anims.create({
+                key: 'person4Motion',
+                frames: this.anims.generateFrameNumbers('person4', { start: 0, end: 2 }),
+                frameRate: 10,
+                repeat: -1
+            });
+
+		    people = this.physics.add.group({
+			    classType: Victim,
+			    createCallback: (go) => {
+				    const personGo = go
+				    personGo.body.onCollide = true
+			    }
+		    });
+
+		    let peopleCollider = this.physics.add.collider(player, people, function(obj1,obj2) {
+                peopleCollider.active = false;
+                dinoScale += 0.1;
+                adjustDinoSize();
+                people.killAndHide(obj2);
+            }, undefined, this);
+
+            people.get(this.cameras.main.centerX + 32, this.cameras.main.centerY, 'person1', 1);
+
+            // set up buildings
+            myMap.forEachTile(function(tile){
+                let d = Math.random();
+                // if tile is grass
+                if(tile.index == 0){
+                    if(d < 0.3){
+                        myMap.putTileAt(1, tile.x, tile.y);
+                    }
+                    else if(d < 0.15){
+                        myMap.putTileAt(2, tile.x, tile.y);
+                    }
+                    
+                    let left = myMap.getTileAt(tile.x - 1, tile.y);
+                    let right = myMap.getTileAt(tile.x + 1, tile.y);
+                    let top = myMap.getTileAt(tile.x, tile.y - 1);
+                    let bottom = myMap.getTileAt(tile.x, tile.y + 1);
+
+                    // check neighbors
+                    let roadCount = 0;
+                    if(left){
+                        if(tileIsRoad(left.index)) roadCount += 1;
+                    }
+                    if(right){
+                        if(tileIsRoad(right.index)) roadCount += 1;
+                    }
+                    if(top){
+                        if(tileIsRoad(top.index)) roadCount += 1;
+                    }
+                    if(bottom){
+                        if(tileIsRoad(bottom.index)) roadCount += 1;
+                    }
+
+                    if(roadCount > 0){
+                        if (d < 0.2) {
+                            buildings.push({"x":tile.x,"y":tile.y,"ref":'complex'});
+                        }
+                    }
+                    
+                }
+                if(tile.index == 144){
+                        let bottom = myMap.getTileAt(tile.x, tile.y + 1);
+                        if(bottom.index == 0){
+                            if(d < 0.2){
+                                buildings.push({"x":tile.x,"y":tile.y,"ref":'factory'});
+                            }
+                            else {
+                                myMap.putTileAt(162, tile.x, tile.y);
+                            }
+                        }
+                }
+            }, null, 0, 0, 72, 71); 
+            for(let i = 0; i < buildings.length; i++) {
+                this.physics.add.image(buildings[i].x * 16 + 8, buildings[i].y * 16 + 8, buildings[i].ref);
+            }
         }
 
         update ()
@@ -168,40 +393,36 @@
 
             if (cursors.left.isDown)
             {
-                player.setVelocityX(-160);
+                player.setVelocityX(-160 * dinoScale);
                 player.setFlipX(true);
                 player.anims.play('right', true);
-                this.mayExpandMap();
+                //console.log(player.x);
             }
             else if (cursors.right.isDown)
             {
-                player.setVelocityX(160);
+                player.setVelocityX(160 * dinoScale);
                 player.setFlipX(false);
-                player.anims.play('right', true);
-                this.mayExpandMap();
+                player.anims.play('right', true);   
+                //console.log(player.x);
             }
             else if (cursors.down.isDown)
             {
-                player.setVelocityY(160);
-                player.anims.play('right', true);
-                this.mayExpandMap();
+                player.setVelocityY(160 * dinoScale);
+                player.anims.play('right', true);     
+                //console.log(player.y);
             }
             else if (cursors.up.isDown)
             {
-                player.setVelocityY(-160);
+                player.setVelocityY(-160 * dinoScale);
 
                 player.anims.play('right', true);
-                this.mayExpandMap();
+                //console.log(player.y);            
             }
             else {
                 player.anims.play('idle', true);
                 player.setVelocityX(0);
                 player.setVelocityY(0);
             }
-        }
-
-        mayExpandMap(){
-            //console.log(this.cameras.main.x + ", " + this.cameras.main.y);
         }
     }
 
