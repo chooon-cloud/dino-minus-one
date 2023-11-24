@@ -376,7 +376,7 @@
                 dinoScale += 0.05;
                 adjustDinoSize();
                 // win condition
-                if(dinoScale >= 1.75){
+                if(dinoScale >= 1.5){
                     gameOver = true;
                     this.showGameoverScreen();
                 }
@@ -558,6 +558,9 @@
 
         showGameoverScreen()
         {
+            this.scene.start('SceneB');
+
+            /*
             let screenLeft = this.cameras.main.centerX - 100;
             let screenTop = this.cameras.main.centerY - 50;
 
@@ -575,6 +578,8 @@
             text3.depth = 1001;
             text4.depth = 1001;
             text5.depth = 1001;
+            */
+
         }
 
         showInputHints(){
@@ -645,6 +650,33 @@
         }
     }
 
+    class SceneB extends Phaser.Scene {
+
+        constructor ()
+        {
+            super('SceneB');
+        }
+
+        preload(){
+            this.load.script('webfont', 'https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js');
+        }
+
+        create ()
+        {
+            WebFont.load({
+                google: {
+                    families: [ 'Open Sans', 'Lato', 'Google Sans' ]
+                }
+            });
+            const bg = this.add.image(0, 0,"gameover-background");
+            const text1 = this.add.text(70, 8, 'Game Over', { fontFamily: 'Open Sans', fontSize: 12, color: '#ffffff' }).setShadow(2, 2, '#333333', 2, false, true);
+            const text2 = this.add.text(40, 24, 'People Eaten: ' + peopleEaten, { fontFamily: 'Open Sans', fontSize: 10, color: '#ffffff' }).setShadow(2, 2, '#333333', 2, false, true);
+            const text3 = this.add.text(40, 40, 'Building(s) Destroyed: ' + buildingsDestroyed, { fontFamily: 'Open Sans', fontSize: 10, color: '#ffffff' }).setShadow(2, 2, '#333333', 2, false, true);
+            const text4 = this.add.text(40, 56, 'Please refresh browser \nif you wish to start over', { fontFamily: 'Open Sans', fontSize: 10, color: '#ffffff' }).setShadow(2, 2, '#333333', 2, false, true);
+            const text5 = this.add.text(55, 86, 'Thanks for playing!', { fontFamily: 'Open Sans', fontSize: 10, color: '#ffffff' }).setShadow(2, 2, '#333333', 2, false, true);
+        }
+    }
+
     const config = {
         type: Phaser.AUTO,
         width: 12.5 * 16,
@@ -656,7 +688,7 @@
                 debug: false
             }
         },
-        scene: Example,
+        scene: [Example,SceneB],
         zoom: 4,
         autoCenter: true
     };
