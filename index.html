@@ -6,6 +6,7 @@
     <script src="ndwfc-master/ndwfc.js"></script>
     <script src="ndwfc-master/ndwfc-tools.js"></script>
     <script src="Victim.js"></script>
+    <script src="Vehicle.js"></script>
 </head>
 <body>
 
@@ -25,6 +26,14 @@
         playerHitbox.setScale(dinoScale);
     }
 
+    var keyboardHintUp;
+    var keyboardHintDown;
+    var keyboardHintLeft;
+    var keyboardHintRight;
+
+
+    var peopleEaten = 0;
+    var buildingsDestroyed = 0;
     var myMap;
     var player;
     var playerHitbox;
@@ -33,6 +42,7 @@
     var gameOver = false;
     var buildings = [];
     var people;
+    var rides;
     var buildingGroup;
     var myWfc;
     var myWfcSize = 4;
@@ -134,6 +144,7 @@
     {
         preload ()
         {
+            this.load.image('gameover-background', 'gameoverBg.png');
             this.load.image('city-tiles', 'tilemap_packed.png');
             this.load.image('dinoHitbox', 'dinoHitbox.png');
             this.load.spritesheet('dino', 'superpowers-asset-packs-characters/characters/prehistoric-platformer/monsters/mini-tyrannosaurus-1.png', { frameWidth: 80, frameHeight: 62 });
@@ -141,11 +152,30 @@
             this.load.spritesheet('person2','person2.png',{frameWidth: 8,frameHeight: 8});
             this.load.spritesheet('person3','person3.png',{frameWidth: 8,frameHeight: 8});
             this.load.spritesheet('person4','person4.png',{frameWidth: 8,frameHeight: 8});
-            this.load.image('complex', 'kenney_tiny-battle/Tiles/tile_0062.png');
+            this.load.image('building1', 'kenney_tiny-battle/Tiles/tile_0062.png');
+
+            this.load.image('building2', 'kenney_tiny-battle/Tiles/tile_0063.png');
+            this.load.image('building3', 'kenney_tiny-battle/Tiles/tile_0064.png');
+
+            this.load.image('tower', 'kenney_tiny-battle/Tiles/tile_0067.png');
 
             this.load.image('factory', 'kenney_tiny-battle/Tiles/tile_0065.png');
 
+            this.load.image('truck', 'kenney_tiny-battle/Tiles/tile_0114.png');
+
+            this.load.image('tank', 'kenney_tiny-battle/Tiles/tile_0116.png');
+
+            this.load.image('tree1', 'kenney_tiny-battle/Tiles/tile_0094.png');
+            this.load.image('tree2', 'kenney_tiny-battle/Tiles/tile_0112.png');
+
+            this.load.image('keyboard-left', 'kenney_1-bit-input-prompts-pixel-16/Tiles (White)/tile_0441.png');
+            this.load.image('keyboard-up', 'kenney_1-bit-input-prompts-pixel-16/Tiles (White)/tile_0438.png');
+            this.load.image('keyboard-right', 'kenney_1-bit-input-prompts-pixel-16/Tiles (White)/tile_0438.png');
+            this.load.image('keyboard-down', 'kenney_1-bit-input-prompts-pixel-16/Tiles (White)/tile_0440.png');
+
+
             this.load.plugin('rexshakepositionplugin', 'rexshakepositionplugin.min.js', true);
+            this.load.script('webfont', 'https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js');
         }
 
         tileRules(){
@@ -255,7 +285,7 @@
         {
             this.generateMap();
             const level = this.convertWfcReadOut();
-            console.log(level);
+            //console.log(level);
             // When loading from an array, make sure to specify the tileWidth and tileHeight
             myMap = this.make.tilemap({ data: level, tileWidth: 16, tileHeight: 16 });
             const tiles = myMap.addTilesetImage('city-tiles');
@@ -331,18 +361,45 @@
 			    }
 		    });
 
+            rides = this.physics.add.group({
+			    classType: Vehicle,
+			    createCallback: (go) => {
+				    const carGo = go
+				    carGo.body.onCollide = true
+			    }
+		    });
+
             buildingGroup = this.physics.add.group();
 
 		    let peopleCollider = this.physics.add.collider(playerHitbox, people, function(obj1,obj2) {
-                //peopleCollider.active = false;
-                if(dinoScale < 1){
-                    dinoScale += 0.05;
-                    adjustDinoSize();
+                if(gameOver) return;
+                dinoScale += 0.05;
+                adjustDinoSize();
+                // win condition
+                if(dinoScale >= 1.75){
+                    gameOver = true;
+                    this.showGameoverScreen();
                 }
                 player.eating = true;
                 player.anims.play('eat', true);
                 obj2.visible = false;
                 obj2.disableBody();
+                //console.log(dinoScale);
+                peopleEaten += 1;
+            }, undefined, this);
+
+            let carCollider = this.physics.add.collider(playerHitbox, rides, function(obj1,obj2) {
+                if(gameOver) return;
+                // lose condition
+                dinoScale -= 0.05;
+                adjustDinoSize();
+                if(dinoScale <= 0.1){
+                    gameOver = true;
+                    this.showGameoverScreen();
+                }
+                obj2.visible = false;
+                obj2.disableBody();
+                //console.log(dinoScale);
             }, undefined, this);
 
             // set up buildings
@@ -355,6 +412,10 @@
                     }
                     else if(d < 0.15){
                         myMap.putTileAt(2, tile.x, tile.y);
+                    }
+                    else if(d < 0.5){
+                        let suffix = Math.floor(Math.random() * 10) % 2 + 1; 
+                        buildings.push({"x":tile.x,"y":tile.y,"ref":'tree'+suffix});
                     }
                     
                     let left = myMap.getTileAt(tile.x - 1, tile.y);
@@ -379,14 +440,31 @@
 
                     if(roadCount > 0){
                         if (d < 0.2) {
-                            buildings.push({"x":tile.x,"y":tile.y,"ref":'complex'});
+                            let suffix = Math.floor(Math.random() * 10) % 3 + 1; 
+                            buildings.push({"x":tile.x,"y":tile.y,"ref":'building'+suffix});
                         }
                     }
                     
                 }
+
+                if(tile.index == 146 || tile.index == 164){
+                    if (d < 0.5) {
+                        let car = rides.get(tile.x * 16 + 8, tile.y * 16 + 8, 'tank');
+                    }
+                }
+
                 if(tile.index == 144){
+                        let top = myMap.getTileAt(tile.x, tile.y - 1);
+                        if(top && top.index == 0){
+                            if(d < 0.2){
+                                buildings.push({"x":tile.x,"y":tile.y,"ref":'tower'});
+                            }
+                            else {
+                                myMap.putTileAt(126, tile.x, tile.y);
+                            }
+                        }
                         let bottom = myMap.getTileAt(tile.x, tile.y + 1);
-                        if(bottom.index == 0){
+                        if(bottom && bottom.index == 0){
                             if(d < 0.2){
                                 buildings.push({"x":tile.x,"y":tile.y,"ref":'factory'});
                             }
@@ -400,8 +478,37 @@
                 let building = this.physics.add.image(buildings[i].x * 16 + 8, buildings[i].y * 16 + 8, buildings[i].ref);
                 building.ref = buildings[i].ref;
                 building.setPushable(false);
-                building.health = 100;
-                building.residents = 5;
+
+                switch (buildings[i].ref){
+                    case "building2":
+                    building.health = 150;
+                    building.residents = 3;
+                    break;
+                    case "building3":
+                    building.health = 200;
+                    building.residents = 3;
+                    break;
+                    case "factory":
+                    building.health = 500;
+                    building.residents = 15;
+                    break;
+                    case "tower":
+                    building.health = 350;
+                    building.residents = 0;
+                    break;
+                    case "tree1":
+                    building.health = 50;
+                    building.residents = 0;
+                    break;
+                    case "tree2":
+                    building.health = 50;
+                    building.residents = 0;
+                    break;
+                    default:
+                    building.health = 100;
+                    building.residents = 2;
+                }
+
                 building.shake = this.plugins.get('rexshakepositionplugin').add(building, {
                     duration: 100,
                     axis: 'h',
@@ -417,7 +524,7 @@
                     let axis = (obj2.body.touching.up || obj2.body.touching.down) ? 'v':'h';
                     obj2.shake.setAxisMode(axis);
                     obj2.shake.shake();
-                    obj2.health -= 1;
+                    obj2.health -= (1 + dinoScale);
                     let d = Math.random();
                     if(d <= 0.1 && obj2.residents > 0){
                         let personAppearance = Math.floor(Math.random() * 10) % 4 + 1; 
@@ -429,15 +536,59 @@
                     //buildingGroup.killAndHide(obj2);
                     obj2.visible = false;
                     obj2.disableBody();
+                    buildingsDestroyed += 1;
                 }
             });
 
             player.depth = 999;
             player.eating = false;
             player.on(Phaser.Animations.Events.ANIMATION_COMPLETE, function () {
-                console.log("eat");
+                //console.log("eat");
                 player.eating = false;
             }, this);
+
+            WebFont.load({
+                google: {
+                    families: [ 'Open Sans', 'Lato', 'Google Sans' ]
+                }
+            });
+
+            this.showInputHints();
+        }
+
+        showGameoverScreen()
+        {
+            let screenLeft = this.cameras.main.centerX - 100;
+            let screenTop = this.cameras.main.centerY - 50;
+
+            const bg = this.add.image(this.cameras.main.centerX, this.cameras.main.centerY,"gameover-background");
+            const text1 = this.add.text(screenLeft + 70, screenTop + 8, 'Game Over', { fontFamily: 'Open Sans', fontSize: 12, color: '#ffffff' }).setShadow(2, 2, '#333333', 2, false, true);
+            const text2 = this.add.text(screenLeft + 40, screenTop + 24, 'People Eaten: ' + peopleEaten, { fontFamily: 'Open Sans', fontSize: 10, color: '#ffffff' }).setShadow(2, 2, '#333333', 2, false, true);
+            const text3 = this.add.text(screenLeft + 40, screenTop + 40, 'Building(s) Destroyed: ' + buildingsDestroyed, { fontFamily: 'Open Sans', fontSize: 10, color: '#ffffff' }).setShadow(2, 2, '#333333', 2, false, true);
+            const text4 = this.add.text(screenLeft + 40, screenTop + 56, 'Please refresh browser \nif you wish to start over', { fontFamily: 'Open Sans', fontSize: 10, color: '#ffffff' }).setShadow(2, 2, '#333333', 2, false, true);
+            const text5 = this.add.text(screenLeft + 55, screenTop + 86, 'Thanks for playing!', { fontFamily: 'Open Sans', fontSize: 10, color: '#ffffff' }).setShadow(2, 2, '#333333', 2, false, true);
+
+            bg.depth = 1000;
+            text1.depth = 1001;
+            text2.depth = 1001;
+
+            text3.depth = 1001;
+            text4.depth = 1001;
+            text5.depth = 1001;
+        }
+
+        showInputHints(){
+            keyboardHintUp = this.add.image(this.cameras.main.centerX, this.cameras.main.centerY + 32,"keyboard-up");
+            keyboardHintLeft = this.add.image(this.cameras.main.centerX - 8 - 2, this.cameras.main.centerY + 32 + 8 + 2,"keyboard-left");
+            keyboardHintRight = this.add.image(this.cameras.main.centerX, this.cameras.main.centerY + 32 + 8 + 2,"keyboard-right");
+            keyboardHintDown = this.add.image(this.cameras.main.centerX + 8 + 2, this.cameras.main.centerY + 32 + 8 + 2,"keyboard-down");
+        }
+
+        hideInputHints(){
+            keyboardHintUp.visible = false;
+            keyboardHintLeft.visible = false;
+            keyboardHintRight.visible = false;
+            keyboardHintDown.visible = false;
         }
 
         update ()
@@ -446,40 +597,43 @@
             {
                 return;
             }
+            let speed = Math.max(16,Math.min(16 * (1/dinoScale), 48));
 
             if (cursors.left.isDown)
             {
+                this.hideInputHints();
                 //player.setVelocityX(-160 * dinoScale);
                 player.setFlipX(true);
                 if(!player.eating) player.anims.play('right', true);
-                playerHitbox.setVelocityX(-160 * dinoScale);
+                playerHitbox.setVelocityX(-speed);
 
                 //console.log(player.x);
             }
             else if (cursors.right.isDown)
             {
+                this.hideInputHints();
                 //player.setVelocityX(160 * dinoScale);
                 player.setFlipX(false);
                 if(!player.eating) player.anims.play('right', true);   
-                playerHitbox.setVelocityX(160 * dinoScale);
+                playerHitbox.setVelocityX(speed);
 
                 //console.log(player.x);
             }
             else if (cursors.down.isDown)
             {
+                this.hideInputHints();
                 //player.setVelocityY(160 * dinoScale);
                 if(!player.eating) player.anims.play('right', true);     
                 //console.log(player.y);
-                playerHitbox.setVelocityY(160 * dinoScale);
+                playerHitbox.setVelocityY(speed);
             }
             else if (cursors.up.isDown)
             {
                 //player.setVelocityY(-160 * dinoScale);
-
+                this.hideInputHints();
                 if(!player.eating) player.anims.play('right', true);
                 //console.log(player.y); 
-                playerHitbox.setVelocityY(-160 * dinoScale);
-
+                playerHitbox.setVelocityY(-speed);
             }
             else {
                 if(!player.eating) player.anims.play('idle', true);
